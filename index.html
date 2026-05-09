@@ -1,38 +1,458 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Christmas Scratch Card</title>
-    <!-- Google Fonts -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Poppins:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Stylesheet -->
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="snow"></div>
-    <div class="container">
-      <div class="christmas-lights"></div>
-      <div class="scratch-area">
-        <div class="base">
-          <img src="https://cdn-icons-png.flaticon.com/256/9011/9011703.png" alt="Santa" class="santa-icon" />
-          <h4>Merry Christmas Aneet!</h4>
-          <h5>Not the same as unwrapping a present, but the best i could do! Press the link below!</h5>
-        </div>
-        <canvas id="scratch" width="200" height="200"></canvas>
-      </div>
-      <div class="gift-link">
-        <img src="https://www.svgrepo.com/show/384669/christmas-gift-present-4.svg" alt="Gift" class="gift-icon" />
-        <a href="https://2138v9pi.r.us-east-1.awstrack.me/L0/https:%2F%2Fmerchant.sgiftcard.eu%2Fhm_uk_2%2F19%2F8941131%2FJA9WRLKF6L/1/01000193fae27e75-be2e4081-12b3-4783-a06f-c798fe065fd4-000000/3Dx2BapqWck5AJaO-tb_G-BAiYs=405" target="_blank" rel="noopener noreferrer">H&M Giftcard</a>
-      </div>
-      <div class="decorations">
-        <div class="holly left"></div>
-        <div class="holly right"></div>
-      </div>
-    </div>
-    <!-- Script -->
-    <script src="script.js"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Training</title>
+
+<!-- Fonts: a sharp grotesk for display, a precise mono for numerals -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0b0d10;
+    --bg-elev: #14181d;
+    --line: #1f262d;
+    --ink: #e8edf2;
+    --ink-dim: #8a949f;
+    --ink-faint: #4a525b;
+    --accent: #ff5b1f;        /* burnt orange — the action colour */
+    --good: #5cd97a;
+    --warn: #ffb347;
+    --display: 'Archivo', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --safe-top: env(safe-area-inset-top, 0);
+    --safe-bot: env(safe-area-inset-bottom, 0);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: var(--display);
+    font-size: 15px;
+    line-height: 1.4;
+    padding: calc(var(--safe-top) + 14px) 16px calc(var(--safe-bot) + 100px);
+    max-width: 560px;
+    margin: 0 auto;
+    background-image:
+      radial-gradient(1200px 600px at 90% -10%, rgba(255,91,31,.07), transparent 60%),
+      radial-gradient(900px 500px at -20% 40%, rgba(92,217,122,.04), transparent 60%);
+    min-height: 100vh;
+  }
+
+  /* Header strip: date in mono, day name in display, hairline rule. */
+  header.top {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px; margin-bottom: 18px;
+  }
+  header.top .day { font-weight: 900; font-size: 28px; letter-spacing: -0.02em; }
+  header.top .date { font-family: var(--mono); color: var(--ink-dim); font-size: 13px; }
+
+  /* Section title pattern */
+  h2.sec {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-dim); margin: 24px 0 10px; display: flex; align-items: center; gap: 10px;
+  }
+  h2.sec::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .card + .card { margin-top: 10px; }
+
+  /* Stats grid for today */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--bg-elev); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .stat .label { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-dim); }
+  .stat .value { font-family: var(--mono); font-size: 26px; font-weight: 700; margin-top: 4px; letter-spacing: -.02em; }
+  .stat .unit { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); margin-left: 4px; font-weight: 400; }
+
+  /* Calendar list */
+  .ev { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .ev:last-child { border-bottom: none; }
+  .ev .t { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); width: 80px; flex-shrink: 0; padding-top: 2px; }
+  .ev .ttl { font-weight: 500; font-size: 14px; }
+  .ev.allday .t { color: var(--accent); }
+
+  /* Forms */
+  form.row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+  form.row.three { grid-template-columns: 1fr 1fr auto; }
+  input, button, select {
+    font-family: var(--mono); font-size: 15px;
+    background: var(--bg); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 11px 12px; width: 100%;
+    -webkit-appearance: none; appearance: none;
+  }
+  input::placeholder { color: var(--ink-faint); }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  button.go {
+    background: var(--accent); border-color: var(--accent); color: #0b0d10;
+    font-weight: 700; font-family: var(--display); letter-spacing: .04em;
+    text-transform: uppercase; font-size: 12px; padding: 11px 16px;
+    cursor: pointer; transition: transform .08s ease;
+  }
+  button.go:active { transform: scale(.96); }
+  button.ghost {
+    background: transparent; color: var(--ink-dim); border: 1px solid var(--line);
+    font-family: var(--display); font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 9px 14px; cursor: pointer;
+  }
+
+  /* Chart */
+  .chart-wrap { padding: 16px 8px 8px; }
+  svg.chart { width: 100%; height: 200px; display: block; }
+  .chart-legend {
+    display: flex; gap: 14px; font-size: 11px; color: var(--ink-dim);
+    font-family: var(--mono); padding: 0 8px 4px; justify-content: flex-end;
+  }
+  .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .chart-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .chart-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .chart-tabs button {
+    flex: 1; padding: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    border: 1px solid var(--line); background: transparent; color: var(--ink-dim);
+    border-radius: 8px; font-family: var(--display); font-weight: 700; cursor: pointer;
+  }
+  .chart-tabs button.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* Toasts */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(var(--safe-bot) + 18px); transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); font-weight: 700; font-size: 13px;
+    padding: 10px 16px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+  .muted { color: var(--ink-dim); font-size: 12px; }
+  .empty { color: var(--ink-faint); font-style: italic; font-size: 13px; padding: 6px 0; }
+  .hidden { display: none !important; }
+
+  /* Calendar connect button */
+  .cal-connect { display: flex; gap: 8px; align-items: center; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <div class="day" id="dayName">—</div>
+    <div class="date" id="dateStr">—</div>
+  </div>
+  <button class="ghost" id="refresh">Refresh</button>
+</header>
+
+<!-- TODAY ------------------------------------------------------------ -->
+<h2 class="sec">Today</h2>
+<div class="stats">
+  <div class="stat"><div class="label">Steps</div><div class="value" id="t_steps">—</div></div>
+  <div class="stat"><div class="label">Active kcal</div><div class="value" id="t_active">—</div></div>
+  <div class="stat"><div class="label">Distance</div><div class="value"><span id="t_dist">—</span><span class="unit">km</span></div></div>
+  <div class="stat"><div class="label">Calories in</div><div class="value" id="t_calin">—</div></div>
+</div>
+
+<!-- CALENDAR --------------------------------------------------------- -->
+<h2 class="sec">Calendar</h2>
+<div class="card" id="calCard">
+  <div class="cal-connect">
+    <div class="muted" id="calStatus">Not connected.</div>
+    <button class="ghost" id="connectCal" style="margin-left:auto">Connect</button>
+  </div>
+  <div id="calList" style="margin-top:10px"></div>
+</div>
+
+<!-- LOG -------------------------------------------------------------- -->
+<h2 class="sec">Log</h2>
+<div class="card">
+  <div class="muted" style="margin-bottom:6px">Calories</div>
+  <form class="row" id="calForm" autocomplete="off">
+    <input type="number" inputmode="numeric" id="cal_kcal" placeholder="kcal" required min="0">
+    <input type="text" id="cal_meal" placeholder="meal (optional)">
+    <button class="go" type="submit">Add</button>
+  </form>
+</div>
+<div class="card">
+  <div class="muted" style="margin-bottom:6px">Run</div>
+  <form class="row three" id="runForm" autocomplete="off">
+    <input type="number" inputmode="decimal" id="run_km" placeholder="km" step="0.01" required min="0">
+    <input type="number" inputmode="numeric" id="run_min" placeholder="minutes" min="0">
+    <button class="go" type="submit">Add</button>
+  </form>
+</div>
+
+<!-- WEEK CHART ------------------------------------------------------- -->
+<h2 class="sec">This week</h2>
+<div class="card chart-wrap">
+  <div class="chart-tabs">
+    <button data-metric="distance" class="active">Distance</button>
+    <button data-metric="active">Active kcal</button>
+    <button data-metric="calin">Calories in</button>
+  </div>
+  <div class="chart-legend"><span><i style="background:var(--accent)"></i><span id="legendLabel">km</span></span></div>
+  <svg class="chart" id="chart" viewBox="0 0 700 200" preserveAspectRatio="none"></svg>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG — fill in before deploying
+// ============================================================
+const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const SHARED_SECRET   = 'change-me-to-a-random-string'; // must match Code.gs
+const GOOGLE_CLIENT_ID = ''; // optional: paste your OAuth web client ID to enable calendar
+// ============================================================
+
+const $ = sel => document.querySelector(sel);
+const fmtDay = d => d.toLocaleDateString('en-GB', { weekday: 'long' });
+const fmtDate = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+const isoDate = d => d.toISOString().slice(0,10);
+
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._h); toast._h = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+// --- Header date ---
+function paintHeader() {
+  const now = new Date();
+  $('#dayName').textContent = fmtDay(now);
+  $('#dateStr').textContent = fmtDate(now).toUpperCase();
+}
+
+// --- Data load ---
+let weekData = null;
+async function loadWeek() {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.startsWith('PASTE')) {
+    $('#t_steps').textContent = '—';
+    return;
+  }
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=week');
+    weekData = await res.json();
+    paintToday();
+    paintChart();
+  } catch (e) { toast('Load failed'); }
+}
+
+function paintToday() {
+  if (!weekData) return;
+  const today = weekData.days[weekData.days.length - 1];
+  const h = weekData.health[today] || {};
+  const r = weekData.runs[today] || {};
+  const c = weekData.calories[today] || {};
+  $('#t_steps').textContent  = h.steps        ? Number(h.steps).toLocaleString() : '—';
+  $('#t_active').textContent = h.active_kcal  ? Math.round(h.active_kcal) : '—';
+  // Prefer manually-logged run distance for the day; fall back to Health distance
+  const dist = (r.distance_km || h.distance_km || 0);
+  $('#t_dist').textContent   = dist ? Number(dist).toFixed(2) : '—';
+  $('#t_calin').textContent  = c.calories ? Math.round(c.calories) : '—';
+}
+
+// --- Submitters ---
+async function postEntry(payload) {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.startsWith('PASTE')) {
+    toast('Set APPS_SCRIPT_URL'); return false;
+  }
+  try {
+    // Apps Script web apps need text/plain to avoid a CORS preflight.
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ secret: SHARED_SECRET, ...payload })
+    });
+    const data = await res.json();
+    if (data.ok) return true;
+    toast(data.error || 'Save failed'); return false;
+  } catch (e) { toast('Network error'); return false; }
+}
+
+$('#calForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const ok = await postEntry({
+    type: 'calories',
+    calories: $('#cal_kcal').value,
+    meal: $('#cal_meal').value
+  });
+  if (ok) { toast('Logged'); $('#calForm').reset(); loadWeek(); }
+});
+
+$('#runForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const ok = await postEntry({
+    type: 'run',
+    distance_km: $('#run_km').value,
+    duration_min: $('#run_min').value
+  });
+  if (ok) { toast('Logged'); $('#runForm').reset(); loadWeek(); }
+});
+
+$('#refresh').addEventListener('click', () => { loadWeek(); loadCalendar(); toast('Refreshed'); });
+
+// --- Bar chart (week) ---
+let currentMetric = 'distance';
+document.querySelectorAll('.chart-tabs button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.chart-tabs button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentMetric = b.dataset.metric;
+    paintChart();
+  });
+});
+
+function paintChart() {
+  if (!weekData) return;
+  const days = weekData.days;
+  const values = days.map(d => {
+    if (currentMetric === 'distance') {
+      const r = weekData.runs[d] || {}, h = weekData.health[d] || {};
+      return Number(r.distance_km || h.distance_km || 0);
+    }
+    if (currentMetric === 'active') {
+      const h = weekData.health[d] || {};
+      return Number(h.active_kcal || 0);
+    }
+    if (currentMetric === 'calin') {
+      const c = weekData.calories[d] || {};
+      return Number(c.calories || 0);
+    }
+    return 0;
+  });
+  const labels = { distance: 'km', active: 'kcal burnt', calin: 'kcal in' };
+  $('#legendLabel').textContent = labels[currentMetric];
+
+  const W = 700, H = 200, pad = { l: 12, r: 12, t: 18, b: 28 };
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const max = Math.max(1, ...values) * 1.15;
+  const barW = innerW / 7 * 0.62;
+  const gapW = innerW / 7;
+
+  let svg = '';
+
+  // Baseline
+  svg += `<line x1="${pad.l}" y1="${pad.t + innerH}" x2="${W - pad.r}" y2="${pad.t + innerH}" stroke="var(--line)" stroke-width="1"/>`;
+  // Subtle gridlines
+  for (let g = 1; g <= 3; g++) {
+    const y = pad.t + innerH * (1 - g/4);
+    svg += `<line x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 4" opacity=".5"/>`;
+  }
+
+  values.forEach((v, i) => {
+    const cx = pad.l + gapW * i + gapW/2;
+    const x = cx - barW/2;
+    const h = (v / max) * innerH;
+    const y = pad.t + innerH - h;
+    const isToday = i === 6;
+    svg += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(2, h)}" rx="3" fill="${isToday ? 'var(--accent)' : 'var(--ink-dim)'}" opacity="${isToday ? 1 : 0.45}"/>`;
+    if (v > 0) {
+      svg += `<text x="${cx}" y="${y - 6}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="var(--ink)">${formatVal(v)}</text>`;
+    }
+    const label = new Date(days[i]).toLocaleDateString('en-GB', { weekday: 'short' })[0];
+    svg += `<text x="${cx}" y="${pad.t + innerH + 16}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="var(--ink-dim)">${label}</text>`;
+  });
+
+  $('#chart').innerHTML = svg;
+}
+
+function formatVal(v) {
+  if (currentMetric === 'distance') return v.toFixed(v < 10 ? 1 : 0);
+  return Math.round(v);
+}
+
+// --- Google Calendar (optional) ---
+// Uses Google Identity Services token client; reads-only, today's events.
+let gisToken = null;
+function loadGisScript() {
+  return new Promise((res, rej) => {
+    if (window.google?.accounts?.oauth2) return res();
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function connectCalendar() {
+  if (!GOOGLE_CLIENT_ID) {
+    $('#calStatus').textContent = 'Set GOOGLE_CLIENT_ID in index.html to enable calendar.';
+    return;
+  }
+  await loadGisScript();
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    callback: (resp) => {
+      if (resp.access_token) {
+        gisToken = resp.access_token;
+        sessionStorage.setItem('gcal_token', gisToken);
+        loadCalendar();
+      }
+    }
+  });
+  client.requestAccessToken();
+}
+
+async function loadCalendar() {
+  if (!GOOGLE_CLIENT_ID) {
+    $('#calStatus').textContent = 'Calendar not configured.';
+    return;
+  }
+  if (!gisToken) gisToken = sessionStorage.getItem('gcal_token');
+  if (!gisToken) { $('#calStatus').textContent = 'Not connected.'; return; }
+
+  const start = new Date(); start.setHours(0,0,0,0);
+  const end   = new Date(); end.setHours(23,59,59,999);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+    new URLSearchParams({
+      timeMin: start.toISOString(),
+      timeMax: end.toISOString(),
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      maxResults: '20'
+    });
+  try {
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + gisToken } });
+    if (res.status === 401) { sessionStorage.removeItem('gcal_token'); gisToken = null; $('#calStatus').textContent = 'Reconnect needed.'; return; }
+    const data = await res.json();
+    renderEvents(data.items || []);
+  } catch (e) { $('#calStatus').textContent = 'Calendar load failed.'; }
+}
+
+function renderEvents(items) {
+  $('#calStatus').textContent = `${items.length} event${items.length===1?'':'s'} today`;
+  if (!items.length) { $('#calList').innerHTML = '<div class="empty">Nothing on today.</div>'; return; }
+  $('#calList').innerHTML = items.map(ev => {
+    const isAllDay = !!ev.start.date;
+    const t = isAllDay ? 'All day' :
+      new Date(ev.start.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="ev ${isAllDay?'allday':''}"><div class="t">${t}</div><div class="ttl">${escapeHtml(ev.summary || '(no title)')}</div></div>`;
+  }).join('');
+}
+
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+$('#connectCal').addEventListener('click', connectCalendar);
+
+// --- Init ---
+paintHeader();
+loadWeek();
+loadCalendar();
+
+// Refresh on focus (e.g. coming back to the home-screen app)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { loadWeek(); }
+});
+</script>
+</body>
 </html>
